@@ -1,0 +1,46 @@
+---
+title: "Assignment2"
+author: "Maxwell Kennady"
+date: "October 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Reference: https://walkerke.github.io/tidycensus/articles/basic-usage.html
+# Reference: https://juliasilge.com/blog/using-tidycensus/
+
+library(tidyverse)
+library(tidycensus)
+
+vars <- load_variables(2017, "acs5", cache = TRUE)
+
+View(vars)
+
+public.health.insurance <- get_acs(geography = "county", 
+                     variables = c("B01003_001","B27015_002"), 
+                     state = "TX",
+                     geometry = TRUE,
+                     year = 2017)
+
+
+View(public.health.insurance)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

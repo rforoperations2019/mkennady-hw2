@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1570218089664.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2CAACB47",
+    "lastKnownWriteTime" : 8247620833102868801,
+    "last_content_update" : 1570218089664,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "id" : "44089ee306264c35a1f344e5aa442483",
+        "name" : "pipelines@proj4string",
+        "title" : "pipelines@proj4string"
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "object_explorer"
+}

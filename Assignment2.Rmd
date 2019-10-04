@@ -6,46 +6,20 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-# Reference: https://walkerke.github.io/tidycensus/articles/basic-usage.html
-# Reference: https://juliasilge.com/blog/using-tidycensus/
 
 library(tidyverse)
 library(tidycensus)
+library(tigris)
 library(magrittr)
 library(dplyr)
 library(sf)
+library(stringr)
+library(leaflet)
+library(leaflet.extras)
+library(rgdal)
+library(sp)
+library(RColorBrewer)
 
-vars <- load_variables(2017, "acs5", cache = TRUE)
-
-public.HI <- get_acs(geography = "county", 
-                     variables = c("B27015_002"), 
-                     state = "TX",
-                     geometry = TRUE,
-                     year = 2017)
-
-pop <- get_acs(geography = "county", 
-                     variables = c("B01003_001"), 
-                     state = "TX",
-                     geometry = TRUE,
-                     year = 2017)
-
-geometries <- select(pop, "GEOID", "geometry")
-
-public.HI$geometry <- NULL
-pop$geometry <- NULL
-public.HI$moe <- NULL
-pop$moe <- NULL
-
-
-
-View(public.HI)
-View(pop)
-
-
-public.HI.pop <- inner_join(public.HI, pop, by = c("GEOID" = "GEOID", "NAME" = "NAME"))
-
-test %<>%
-  mutate(perc_HI = estimate.x / estimate.y)
 
 
 ```
@@ -57,10 +31,84 @@ test %<>%
 
 
 
+```{r Texas Public Health Insurance}
+
+# Reference: https://walkerke.github.io/tidycensus/articles/basic-usage.html
+# Reference: https://juliasilge.com/blog/using-tidycensus/
+
+vars <- load_variables(2017, "acs5", cache = TRUE)
+
+# persons on public health insurance from census in Texas counties
+public.HI <- get_acs(geography = "county", 
+                     variables = c("B27015_002"), 
+                     state = "TX",
+                     geometry = FALSE,
+                     year = 2017)
+
+# population of Texas counties
+pop <- get_acs(geography = "county", 
+                     variables = c("B01003_001"), 
+                     state = "TX",
+                     geometry = FALSE,
+                     year = 2017)
+
+public.HI.pop <- inner_join(public.HI, pop, by = c("GEOID" = "GEOID", "NAME" = "NAME"))
+
+public.HI.pop %<>%
+  mutate(perc_HI = round(estimate.x / estimate.y, digits = 2))
+
+
+
+# Reference: https://github.com/walkerke/tigris
+tx.counties <- counties(state = 48)
+
+tx.counties@data <- merge(tx.counties@data, public.HI.pop, sort = FALSE, by = "GEOID")
+
+
+# Reference: https://rstudio.github.io/leaflet/colors.html
+pal <- colorBin(palette = "Oranges", 
+                bins = c(0, .05, 0.1, 0.15, 0.2, 0.25, .3, .35, .4),
+                domain = tx.counties$perc_HI)
+
+
+# Reference: https://rstudio.github.io/leaflet/choropleths.html
+leaflet(tx.counties) %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(fillColor = ~pal(perc_HI),
+              weight = 1,
+              opacity = 1,
+              color = "black",
+              fillOpacity = 0.6,
+              popup = ~paste0("<b>", NAMELSAD, "</b> ", 
+                              "<br>Residents: ", format(estimate.y, big.mark = "," ), 
+                              "<br>Residents on public health insurance: ", format(estimate.x,big.mark = ","),
+                              "<br>Percent of residents on public<br>health insurance: ", 
+                              perc_HI * 100, "%")) %>%
+  # Reference: https://rstudio.github.io/leaflet/legends.html
+  addLegend(position = "bottomright", 
+            pal = pal,
+            values = ~perc_HI,
+            title = "Percent of county residents<br>on public health insurance",
+            labFormat = labelFormat(digits = 0, transform = function(x) 100 * x, suffix = "%" ))
+
+```
 
 
 
 
+
+# Pipelines data
+```{r}
+
+# data source: https://hifld-geoplatform.opendata.arcgis.com/datasets/natural-gas-pipelines?geometry=-109.914%2C26.933%2C-86.249%2C33.570
+
+pipelines <- readOGR("./Natural_Gas_Pipelines/Natural_Gas_Pipelines.shp")
+
+
+
+
+
+```
 
 
 

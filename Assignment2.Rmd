@@ -12,16 +12,8 @@ library(tidycensus)
 library(tigris)
 library(magrittr)
 library(dplyr)
-library(sf)
-library(stringr)
 library(leaflet)
-library(leaflet.extras)
 library(rgdal)
-library(sp)
-library(RColorBrewer)
-
-
-
 ```
 
 
@@ -66,7 +58,7 @@ public.HI.pop %<>%
 # Reference: https://github.com/walkerke/tigris
 tx.counties <- counties(state = 48)
 
-tx.counties@data <- merge(tx.counties@data, public.HI.pop, sort = FALSE, by = "GEOID")
+tx.counties@data <- merge(tx.counties@data, public.HI.pop, sort = FALSE, by = "GEOID", )
 
 # create palettes of colors
 # Reference: https://rstudio.github.io/leaflet/colors.html

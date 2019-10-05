@@ -25,18 +25,21 @@ library(RColorBrewer)
 ```
 
 
+## Texas Residents on Public Health Insurance
+Source: U.S. Census Bureau, ACS 5-year, Table B27015 and B01003
+Table 1 title: HEALTH INSURANCE COVERAGE STATUS AND TYPE BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS, 
+https://data.census.gov/cedsci/table?q=B27015
 
+Table 2 title: TOTAL POPULATION, 
+https://data.census.gov/cedsci/table?q=b01003
 
-
-
-
-
-```{r Texas Public Health Insurance}
+```{r layer of polygons with variable that changes layer/legend color}
 
 # Reference: https://walkerke.github.io/tidycensus/articles/basic-usage.html
 # Reference: https://juliasilge.com/blog/using-tidycensus/
 
-vars <- load_variables(2017, "acs5", cache = TRUE)
+# View Census data tables available
+#View(load_variables(2017, "acs5", cache = TRUE))
 
 # persons on public health insurance from census in Texas counties
 public.HI <- get_acs(geography = "county", 
@@ -54,42 +57,76 @@ pop <- get_acs(geography = "county",
 
 public.HI.pop <- inner_join(public.HI, pop, by = c("GEOID" = "GEOID", "NAME" = "NAME"))
 
+# get percentage of population of county on public health insurance
 public.HI.pop %<>%
   mutate(perc_HI = round(estimate.x / estimate.y, digits = 2))
 
 
-
+# get tigris data on counties in Texas and merge with health insurance data frame
 # Reference: https://github.com/walkerke/tigris
 tx.counties <- counties(state = 48)
 
 tx.counties@data <- merge(tx.counties@data, public.HI.pop, sort = FALSE, by = "GEOID")
 
-
+# create palettes of colors
 # Reference: https://rstudio.github.io/leaflet/colors.html
-pal <- colorBin(palette = "Oranges", 
+pal <- colorBin(palette = "Oranges",
+                bins = c(0, .05, 0.1, 0.15, 0.2, 0.25, .3, .35, .4),
+                domain = tx.counties$perc_HI)
+
+pal2 <- colorBin(palette = "PuRd",
                 bins = c(0, .05, 0.1, 0.15, 0.2, 0.25, .3, .35, .4),
                 domain = tx.counties$perc_HI)
 
 
-# Reference: https://rstudio.github.io/leaflet/choropleths.html
 leaflet(tx.counties) %>%
-  addProviderTiles("CartoDB.Positron") %>%
+  addProviderTiles("OpenStreetMap") %>% 
+  # Orange shading of public health insurance
   addPolygons(fillColor = ~pal(perc_HI),
               weight = 1,
               opacity = 1,
               color = "black",
               fillOpacity = 0.6,
-              popup = ~paste0("<b>", NAMELSAD, "</b> ", 
-                              "<br>Residents: ", format(estimate.y, big.mark = "," ), 
+              popup = ~paste0("<b>", NAMELSAD, "</b> ",
+                              "<br>Residents: ", format(estimate.y, big.mark = "," ),
                               "<br>Residents on public health insurance: ", format(estimate.x,big.mark = ","),
-                              "<br>Percent of residents on public<br>health insurance: ", 
-                              perc_HI * 100, "%")) %>%
+                              "<br>Percent of residents on public<br>health insurance: ",
+                              perc_HI * 100, "%"),
+              group = "Orange") %>%
+  # Purple shading of public health insurance
+  addPolygons(fillColor = ~pal2(perc_HI),
+              weight = 1,
+              opacity = 1,
+              color = "black",
+              fillOpacity = 0.6,
+              popup = ~paste0("<b>", NAMELSAD, "</b> ",
+                              "<br>Residents: ", format(estimate.y, big.mark = "," ),
+                              "<br>Residents on public health insurance: ", format(estimate.x,big.mark = ","),
+                              "<br>Percent of residents on public<br>health insurance: ",
+                              perc_HI * 100, "%"),
+              group = "Purple") %>%
   # Reference: https://rstudio.github.io/leaflet/legends.html
-  addLegend(position = "bottomright", 
+  # Reference: https://stackoverflow.com/questions/38701359/grouped-layer-control-in-leaflet-r
+  # Reference: https://rstudio.github.io/leaflet/showhide.html
+  addLegend(position = "bottomright",
             pal = pal,
             values = ~perc_HI,
             title = "Percent of county residents<br>on public health insurance",
-            labFormat = labelFormat(digits = 0, transform = function(x) 100 * x, suffix = "%" ))
+            labFormat = labelFormat(digits = 0, transform = function(x) 100 * x, suffix = "%" ),
+            group = "Orange") %>%
+  addLegend(position = "bottomright",
+            pal = pal2,
+            values = ~perc_HI,
+            title = "Percent of county residents<br>on public health insurance",
+            labFormat = labelFormat(digits = 0, transform = function(x) 100 * x, suffix = "%" ),
+            group = "Purple") %>%
+  # allow user to change color of shading and legend
+  addLayersControl(overlayGroups = c("Orange", "Purple"),
+                   options = layersControlOptions(collapsed=FALSE)) %>%
+  # by default, hide the group "Purple"
+  hideGroup("Purple")
+
+
 
 ```
 
@@ -97,19 +134,97 @@ leaflet(tx.counties) %>%
 
 
 
-# Pipelines data
-```{r}
+## Natural Gas Pipelines in the United States
+```{r layer of lines}
 
 # data source: https://hifld-geoplatform.opendata.arcgis.com/datasets/natural-gas-pipelines?geometry=-109.914%2C26.933%2C-86.249%2C33.570
 
 pipelines <- readOGR("./Natural_Gas_Pipelines/Natural_Gas_Pipelines.shp")
 
+leaflet(pipelines) %>%
+  addProviderTiles("OpenStreetMap.Mapnik") %>%
+  addPolylines(color = "red",
+              weight = 1, 
+              group = "Red")
+
+```
+
+
+## Residents of Texas Counties working in Mining, Quarrying, and Oil and Gas Extraction
+Source: U.S. Census Bureau, ACS 5-year, Table C24040
+Table:  SEX BY INDUSTRY FOR THE FULL-TIME, YEAR-ROUND CIVILIAN EMPLOYED POPULATION 16 YEARS AND OVER,
+https://data.census.gov/cedsci/table?hidePreview=true&q=C24040
+
+```{r layer of points and polygons with functioning layersControl (two basemaps, two layers)}
+
+# data source: https://hifld-geoplatform.opendata.arcgis.com/datasets/oil-refinieries-1
+refineries <- read_csv("./Oil_Refineries.csv")
+
+oil <- get_acs(geography = "county", 
+                     variables = c("C24040_005"), 
+                     state = "TX",
+                     geometry = FALSE,
+                     year = 2017)
+
+oilFemale <- get_acs(geography = "county", 
+                     variables = c("C24040_032"), 
+                     state = "TX",
+                     geometry = FALSE,
+                     year = 2017)
+
+# merge datasets and get percentage of each county's workers in mining/oil industry
+oil %<>%
+  left_join(oilFemale, by = c("GEOID" = "GEOID", "NAME" = "NAME")) %>%
+  left_join(pop, by = c("GEOID" = "GEOID", "NAME" = "NAME")) %>%
+  mutate(total_oil = estimate.x + estimate.y, perc_oil = total_oil / estimate)
+
+oil$perc_oil <- as.numeric(round(oil$perc_oil, digits = 2))  * 100
+
+counties.oil <- counties(state = 48)
+
+counties.oil@data <- merge(counties.oil@data, oil, sort = FALSE, by = "GEOID")
+
+
+pal3 <- colorBin(palette = "Oranges",
+                bins = c(0, 2, 4, 6, 8, 12, 14),
+                domain = counties.oil$perc_oil)
+
+
+leaflet(counties.oil) %>%
+  addProviderTiles("OpenStreetMap", group = "OSM") %>% 
+  addProviderTiles("Stamen.Terrain", group = "Stamen") %>% 
+  addPolygons(fillColor = ~pal3(perc_oil),
+              weight = 1,
+              opacity = 1,
+              color = "black",
+              fillOpacity = 0.6,
+              popup = ~paste0("<b>", NAMELSAD, "</b> ",
+                              "<br>Residents working in oil & gas: ", format(total_oil, big.mark = ","),
+                              "<br>Percent of residents working in oil & gas: ", perc_oil, "%"),
+              group = "Oil/Gas Workers") %>%
+  addMarkers(data = refineries, 
+             lng = ~LONGITUDE, 
+             lat = ~LATITUDE, 
+             popup = paste0(refineries$OPERNAME, "<br>", 
+                            refineries$ADDRESS, "<br>", 
+                            refineries$CITY, ", ", 
+                            refineries$STATE, " ", 
+                            refineries$ZIP),
+             group = "Refineries") %>%
+  addLegend(position = "bottomright",
+            pal = pal3,
+            values = ~perc_oil,
+            title = "Percent of residents working in oil & gas",
+            labFormat = labelFormat(digits = 0, suffix = "%" )) %>%
+  addLayersControl(baseGroups = c("OSM", "Stamen"),
+                   overlayGroups = c("Oil/Gas Workers","Refineries"),
+                   options = layersControlOptions(collapsed = FALSE))
+
 
 
 
 
 ```
-
 
 
 

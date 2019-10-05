@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1570119706268.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A40057A0",
+    "lastKnownWriteTime" : 1570233066,
+    "last_content_update" : 1570233089697,
+    "path" : "C:/RShiny/mkennady-hw2/Assignment2.Rmd",
+    "project_path" : "Assignment2.Rmd",
+    "properties" : {
+        "cursorPosition" : "166,0",
+        "last_setup_crc32" : "8D528EE1a64b4fd5",
+        "scrollLine" : "151"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
